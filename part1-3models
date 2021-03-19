@@ -1,0 +1,80 @@
+###################GLM MODEL
+# setwd("/HW 5")
+#
+  training<-read.csv("./train.csv")
+  testing<-read.csv("./test.csv")
+  index <- sample(2,nrow(training),replace=TRUE,prob=c(0.5,0.5))
+  training[is.na(training)]=-1
+  testing[is.na(testing)]=-1
+
+  temp1<-training[index==1,]
+  temp2<-training[index==2,]
+library(gbm)
+
+ model_glm<-glm(pstr~SEX+ageyear+higheduc+pamarriedliving+race6+hisp+raceeth7+hincome+pamarital6+fam_size_cv+
+                  fam_wage_loss_cv+su_p_alc_drinks_used_cv+su_p_alc_use_cv+su_p_cig_use_cv+su_p_mj_smoke_cv+worry_about_cv+
+                  ext_fam_diag_cv+fam_exp1_cv+think_will_hospitalized_cv+fam_actions_cv___1+fam_actions_cv___14+fam_discord_cv+
+                  fam_exp5_cv+fam_exp6_cv+su_p_other_drugs_cv+su_p_rx_od_cv+absent_reason_cv___3+child_past_risk_cv___2+
+                  child_phys_activity_days_cv+walk_10_min_per_day_cv+child_video_chat_min_cv+child_texting_min_cv+
+                  child_social_media_min_cv,data=temp1,family=gaussian)
+
+pred_glm<-predict(model_glm,temp2,type="response")
+rmse(temp2$pstr,pred_glm)
+testing$glm_pstr=predict(model_glm,testing,type="response")
+write.csv(testing[,c("test_id","glm_pstr")],"my_submission_glm.csv",row.names=F)
+############################GBM MODEL
+
+
+temp2$ID<-as.factor(temp2$ID)
+ set.seed(123)
+ model_gbm<-gbm(pstr~SEX+ageyear+higheduc+pamarriedliving+race6+hisp+raceeth7+hincome+pamarital6+fam_size_cv+
+                  fam_wage_loss_cv+su_p_alc_drinks_used_cv+su_p_alc_use_cv+su_p_cig_use_cv+su_p_mj_smoke_cv+worry_about_cv+
+                  ext_fam_diag_cv+fam_exp1_cv+think_will_hospitalized_cv+fam_actions_cv___1+fam_actions_cv___14+fam_discord_cv+
+                  fam_exp5_cv+fam_exp6_cv+su_p_other_drugs_cv+su_p_rx_od_cv+absent_reason_cv___3+child_past_risk_cv___2+
+                  child_phys_activity_days_cv+walk_10_min_per_day_cv+child_video_chat_min_cv+child_texting_min_cv+
+                  child_social_media_min_cv,data=temp1)
+#Feature Scaling
+ temp1$ID<-NULL
+ temp2$ID=NULL
+ temp1$ID<-as.factor(temp1$ID)
+ temp1$interview_date<-as.factor(temp1$interview_date)
+ temp2$interview_date<-as.factor(temp2$interview_date)
+ temp1$SEX<-as.factor(temp1$SEX)
+ temp2$SEX<-as.factor(temp2$SEX)
+ temp1$higheduc<-as.factor(temp1$higheduc)
+ temp2$higheduc<-as.factor(temp2$higheduc)
+ model_gbm <- gbm(pstr ~ .,
+   distribution = "gaussian",
+   data = temp1,
+   n.trees = 100,
+   interaction.depth = 1,
+   shrinkage = 0.1,
+   train.fraction=0.5,
+   n.cores = NULL, # will use all cores by default
+   verbose = FALSE
+ )
+
+ pred<-predict(model_gbm,newdata=temp2,n.trees=100,type="response")
+ rmse(training[-index,]$pstr,pred)
+
+############################
+###############################Random Forest
+library(randomForest)
+model_rf<-randomForest(pstr~SEX+ageyear+higheduc+pamarriedliving+race6+hisp+raceeth7+hincome+pamarital6+fam_size_cv+
+                                           fam_wage_loss_cv+su_p_alc_drinks_used_cv+su_p_alc_use_cv+su_p_cig_use_cv+su_p_mj_smoke_cv+worry_about_cv+
+                                           ext_fam_diag_cv+fam_exp1_cv+think_will_hospitalized_cv+fam_actions_cv___1+fam_actions_cv___14+fam_discord_cv+
+                                           fam_exp5_cv+fam_exp6_cv+su_p_other_drugs_cv+su_p_rx_od_cv+absent_reason_cv___3+child_past_risk_cv___2+
+                                           child_phys_activity_days_cv+walk_10_min_per_day_cv+child_video_chat_min_cv+child_texting_min_cv+
+                                           child_social_media_min_cv, nTree=1000, data=temp1)
+
+
+
+
+
+
+
+
+
+
+
+
