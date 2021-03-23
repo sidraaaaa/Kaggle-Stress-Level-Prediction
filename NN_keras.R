@@ -51,9 +51,9 @@ history_X_join<-NN_keras_model%>%fit(X_join,y,
                      ) #rmse= 2.828
 
 plot(history_X_join)
-model%>%predict(X_join)
+NN_keras_model%>%predict(X_join)
   
-#with dropout rate rmse=2.828
+#with dropout rate rmse=2.83
 
 
 NN_keras_model_wo_dropout<-keras_model_sequential()
@@ -77,9 +77,22 @@ history_X_join<-NN_keras_model_wo_dropout%>%fit(X_join,y,
 ) #rmse= 2.94
 
 plot(history_X_join)
-model%>%predict(X_join)
+NN_keras_model_wo_dropout%>%predict(X_join)
 
 #with dropout rate in mode I was getting rmse= 2.828
 #without dropout rate in mode I was getting rmse= 2.94
 #It seems like including dropout rate is good because it
 #doesnt allow model to overfit the training data
+
+#Predicting on Test data
+testing_mat<-testing[,3:84]               
+testing_mat$SEX=as.numeric(as.factor(testing_mat$SEX))
+testing_mat$higheduc=NULL
+testing_mat[is.na(testing_mat)]=0
+testing_mat=as.matrix(testing_mat)
+testing$pstr<-predict(NN_keras_model,testing_mat)
+write.csv(testing[,c("test_id","pstr")],"my_submission_NN_Keras.csv",row.names=F)
+
+
+
+

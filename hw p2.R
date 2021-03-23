@@ -77,11 +77,19 @@ cor(nonzerocols, y,  method = "pearson", use = "complete.obs")
 
 
 ##############################################################################################
+#Predicting on test data
+
+testing_mat<-testing[,3:84]               
+testing_mat$SEX=as.numeric(as.factor(testing_mat$SEX))
+testing_mat$higheduc=NULL
+testing_mat[is.na(testing_mat)]=0
+testing_mat=as.matrix(testing_mat)
 
 
+testing$pstr<-predict(model_glmsparse,newx=testing_mat,s=0.14)
 
-
-
+#testing$pstr=data.frame(id=testing$test_id, pred=pred_test_model)
+write.csv(testing[,c("test_id","pstr")],"my_submission_glmnet.csv",row.names=F)
 
 
 
