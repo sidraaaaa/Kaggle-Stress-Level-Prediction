@@ -38,23 +38,45 @@ temp2_mat[is.na(temp2_mat)]=0
 temp2_mat=as.matrix(temp2_mat)
 
 
-
 model_glmsparse<-glmnet(X_join,y,alpha=1) #glmnet model with alpha 1
 plot(model_glmsparse)                     #plotting 
-# sum(coef(model_glmsparse,s=0.17)==0) 
-# coef(model_glmsparse,s=0.17)
+sum(coef(model_glmsparse,s=0.14)==0) 
+coef(model_glmsparse,s=0.14)  #Total 10 non-zero columns
 
 
-cv <- cv.glmnet(X_join,y)                 #finding best alpha for our glmnet model
-modell=glmnet(X_join,y,lambda=cv$lambda.1se)  # cv$lambda.1se = 0.1209962 recommended way by authors to pick lambda
-sum(coef(modell,s=cv$lambda.1se)==0)  #total 65 zero columns
+#cv <- cv.glmnet(X_join,y)                 #finding best alpha for our glmnet model
+#modell=glmnet(X_join,y,lambda=cv$lambda.1se)  # cv$lambda.1se = 0.1209962 recommended way by authors to pick lambda
+#sum(coef(modell,s=cv$lambda.1se)==0)  #total 65 zero columns
+#pred_model<-predict(modell,newx=temp2_mat,s=cv$lambda.1se)
+#rmse(temp2$pstr,pred_model) #2.85
 
-pred_model<-predict(modell,newx=temp2_mat,s=cv$lambda.1se)
+pred_model<-predict(model_glmsparse,newx=temp2_mat,s=0.14)
+rmse(temp2$pstr,pred_model)  #2.85281
 
-rmse(temp2$pstr,pred_model) #2.85
+nonzerocols<-cbind(X_join[,"SEX"],X_join[,"hisp"],X_join[,"hincome"],X_join[,"fam_actions_cv___4"],
+                    X_join[,"fam_discord_cv"],X_join[,"child_avg_elec_time_cv"],X_join[,"child_social_media_time_cv"],
+                    X_join[,"physical_activities_hr_cv"],X_join[,"sitting_weekday_hour_cv"],X_join[,"walk_10_min_per_day_cv"])
 
 
+cor(nonzerocols, y,  method = "pearson", use = "complete.obs")
+#             [,1]
+# [1,] -0.09019607    SEX
+# [2,]  0.06183502    hisp
+# [3,] -0.07515416    hincome
+# [4,]  0.05421621    fam_actions_cv___4
+# [5,]  0.06540660    fam_discord_cv
+# [6,]  0.07617617    child_avg_elec_time_cv
+# [7,]  0.08960883    child_social_media_time_cv
+# [8,] -0.08405217    physical_activities_hr_cv
+# [9,]  0.06385007    sitting_weekday_hour_cv
+# [10,] -0.06968231   walk_10_min_per_day_cv
 
+#So negative correlation describes the inverse relation of factors or columns with stress
+#Positive correlation describes the direct relation of factors or columns with stress
+#Above are the top ten factors that affects the stress on human
+
+
+##############################################################################################
 
 
 
