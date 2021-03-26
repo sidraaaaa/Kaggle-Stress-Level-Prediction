@@ -24,11 +24,15 @@ y=temp1$pstr         #holding out y label
 X=temp1[,3:84]      # for glmnet's numeric matrix
 X$pstr=NULL         #removing pstr
 X$SEX=as.numeric(as.factor(X$SEX))   #factoring the categorical value
+library(tidyverse)
 pstr_table=temp1%>%group_by(higheduc)%>%summarise(medianpstr=median(pstr)) #substituting median of pstr for higheduc:categorical column
 X_join=right_join(X,pstr_table,by="higheduc") #joining both tables
 #head(X_join$medianpstr) 
 table(X_join$medianpstr)
 X_join$higheduc=NULL #higheduc=NA
+
+
+#################################################################
 X_join[is.na(X_join)]=0 #putting zero in place of all NAs
 X_join=as.matrix(X_join) #making matrix
 temp2_mat<-temp2[,3:84]               #repeating the same thing for cross-validated set
@@ -37,11 +41,14 @@ temp2_mat$higheduc=NULL
 temp2_mat[is.na(temp2_mat)]=0
 temp2_mat=as.matrix(temp2_mat)
 
+library(Matrix)
+library(glmnet)
+
 
 model_glmsparse<-glmnet(X_join,y,alpha=1) #glmnet model with alpha 1
 plot(model_glmsparse)                     #plotting 
-sum(coef(model_glmsparse,s=0.14)==0) 
-coef(model_glmsparse,s=0.14)  #Total 10 non-zero columns
+sum(coef(model_glmsparse,s=0.08)==0) 
+coef(model_glmsparse,s=0.08)  #Total 10 non-zero columns
 
 
 #cv <- cv.glmnet(X_join,y)                 #finding best alpha for our glmnet model
@@ -50,12 +57,30 @@ coef(model_glmsparse,s=0.14)  #Total 10 non-zero columns
 #pred_model<-predict(modell,newx=temp2_mat,s=cv$lambda.1se)
 #rmse(temp2$pstr,pred_model) #2.85
 
-pred_model<-predict(model_glmsparse,newx=temp2_mat,s=0.14)
-rmse(temp2$pstr,pred_model)  #2.85281
+pred_model<-predict(model_glmsparse,newx=temp2_mat,s=0.08)
+rmse(temp2$pstr,pred_model)  #with s= 0.14 #rmse= 2.85281 #Top 10 Features
+                            #with s=0.08 #rmse=2.81  #Top 19 Features
 
-nonzerocols<-cbind(X_join[,"SEX"],X_join[,"hisp"],X_join[,"hincome"],X_join[,"fam_actions_cv___4"],
-                    X_join[,"fam_discord_cv"],X_join[,"child_avg_elec_time_cv"],X_join[,"child_social_media_time_cv"],
-                    X_join[,"physical_activities_hr_cv"],X_join[,"sitting_weekday_hour_cv"],X_join[,"walk_10_min_per_day_cv"])
+#for Top 10 Features, s=0.14
+# nonzerocols<-cbind(X_join[,"SEX"],X_join[,"hisp"],X_join[,"hincome"],X_join[,"fam_actions_cv___4"],
+#                     X_join[,"fam_discord_cv"],X_join[,"child_avg_elec_time_cv"],X_join[,"child_social_media_time_cv"],
+#                     X_join[,"physical_activities_hr_cv"],X_join[,"sitting_weekday_hour_cv"],X_join[,"walk_10_min_per_day_cv"])
+# 
+
+
+#for Top 19 Features, s=0.08
+nonzerocols<-cbind(X_join[,"SEX"],X_join[,"race6"],X_join[,"hisp"],
+                   X_join[,"hincome"],X_join[,"pamarital"],
+                   X_join[,"fam_wage_loss_cv"],
+                   X_join[,"think_will_hospitalized_cv"],X_join[,"ext_fam_diag_cv"],
+                   X_join[,"fam_actions_cv___4"],
+                   X_join[,"fam_actions_cv___10"],
+                   X_join[,"fam_discord_cv"],X_join[,"child_avg_elec_time_cv"],
+                   X_join[,"child_past_risk_cv___4"],
+                   X_join[,"child_social_media_time_2_cv"],X_join[,"child_social_media_time_cv"],
+                   X_join[,"physical_activities_hr_cv"],X_join[,"sitting_weekday_hour_cv"],
+                   X_join[,"walk_10_min_per_day_cv"],X_join[,"medianpstr"])
+
 
 
 cor(nonzerocols, y,  method = "pearson", use = "complete.obs")
@@ -86,10 +111,10 @@ testing_mat[is.na(testing_mat)]=0
 testing_mat=as.matrix(testing_mat)
 
 
-testing$pstr<-predict(model_glmsparse,newx=testing_mat,s=0.14)
+testing$pstr<-predict(model_glmsparse,newx=testing_mat,s=0.08)
 
 #testing$pstr=data.frame(id=testing$test_id, pred=pred_test_model)
-write.csv(testing[,c("test_id","pstr")],"my_submission_glmnet.csv",row.names=F)
+write.csv(testing[,c("test_id","pstr")],"my_submission_glmnet_improved.csv",row.names=F)
 
 
 
