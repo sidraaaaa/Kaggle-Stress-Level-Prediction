@@ -10,7 +10,11 @@
 
 training<-read.csv("./train.csv")
 testing<-read.csv("./test.csv")
-temp1<-training
+index=sample(nrow(training),nrow(training)/2,F)
+temp1<-training[index,]
+temp2<-training[-index,]
+
+#temp1<-training
 ##########Feature Scaling columns
 y=temp1$pstr         #holding out y label
 X=temp1[,3:84]      # for glmnet's numeric matrix
@@ -34,10 +38,11 @@ NN_keras_model<-keras_model_sequential()
 NN_keras_model%>%
   layer_dense(units=50,activation='relu',
               input_shape = c(81))%>%
-              layer_dropout(rate=0.5)%>%
+              layer_dropout(rate=0.2)%>%
               layer_dense(units=50,activation='relu')%>%
-              layer_dropout(rate=0.5)%>%
+              layer_dropout(rate=0.2)%>%
               layer_dense(units=1,activation='linear')
+
   
 summary(NN_keras_model)
 NN_keras_model%>%compile(
@@ -46,7 +51,7 @@ NN_keras_model%>%compile(
         metrics=c('MeanSquaredError')
 )  
 history_X_join<-NN_keras_model%>%fit(X_join,y,
-                     epochs=30, patch_size=128,
+                     epochs=30, batch_size=128,
                      validation_split=0.2
                      ) #rmse= 2.828
 
@@ -72,7 +77,7 @@ NN_keras_model_wo_dropout%>%compile(
 )
 
 history_X_join<-NN_keras_model_wo_dropout%>%fit(X_join,y,
-                                     epochs=30, patch_size=128,
+                                     epochs=30, batch_size=128,
                                      validation_split=0.2
 ) #rmse= 2.94
 
@@ -90,9 +95,27 @@ testing_mat$SEX=as.numeric(as.factor(testing_mat$SEX))
 testing_mat$higheduc=NULL
 testing_mat[is.na(testing_mat)]=0
 testing_mat=as.matrix(testing_mat)
-testing$pstr<-predict(NN_keras_model,testing_mat)
+testing_mat[,1]=(testing_mat[,1]-mean(testing_mat[,1]))/sd(testing_mat[,1])
+testing$pstr<-NN_keras_model%>%predict(testing_mat)
 write.csv(testing[,c("test_id","pstr")],"my_submission_NN_Keras.csv",row.names=F)
 
 
 
+b=temp2$pstr         #holding out y label
+a=temp2[,3:84]      # for glmnet's numeric matrix
+a$pstr=NULL         #removing pstr
+a$SEX=as.numeric(as.factor(a$SEX))   #factoring the categorical value
+pstr_table=temp1%>%group_by(higheduc)%>%summarise(medianpstr=median(pstr)) #substituting median of pstr for higheduc:categorical column
+a_join=right_join(a,pstr_table,by="higheduc") #joining both tables
+#head(X_join$medianpstr) 
+table(a_join$medianpstr)
+a_join$higheduc=NULL #higheduc=NA
+a_join[is.na(a_join)]=0 #putting zero in place of all NAs
+a_join=as.matrix(a_join) #making matrix
 
+
+a_join[,1]=(a_join[,1]-mean(a_join[,1]))/sd(a_join[,1]) #replacing NAs
+#dim(X_join)
+
+temp2pred<-NN_keras_model%>%predict(a_join)
+rmse(b,temp2pred)
